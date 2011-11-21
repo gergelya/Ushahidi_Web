@@ -51,8 +51,8 @@ if(Kohana::config('config.enable_mhi') == TRUE)
 	$tp = $mhi_db['table_prefix'];
 	
 	// Connect to the MHI database
-	$link = mysql_connect($mhi_db['connection']['host'], $mhi_db['connection']['user'], $mhi_db['connection']['pass']) or die();
-	mysql_select_db($mhi_db['connection']['database']) or die();
+	//$link = mysql_connect($mhi_db['connection']['host'], $mhi_db['connection']['user'], $mhi_db['connection']['pass']) or die();
+	//mysql_select_db($mhi_db['connection']['database']) or die();
 
 	// If there is no subdomain and the host doesn't match the main mhi domain, this might be a custom domain
 	//   ... if this is the case, we need to find the subdomain that the site was originally set up as.
@@ -62,13 +62,14 @@ if(Kohana::config('config.enable_mhi') == TRUE)
 		{
 			// Looks like the domain accessing MHI is different, let's look up the custom domain
 			//    in the database to see if it's registered with a certain subdomain
-			$query = 'SELECT site_domain FROM '.$tp.'mhi_site WHERE custom_domain = \''.mysql_real_escape_string($_SERVER['HTTP_HOST']).'\' LIMIT 1;';
+		  $db = new Database();
+		  $query = $db->query('SELECT site_domain FROM '.$tp.'mhi_site WHERE custom_domain = \''.$db->escape_str($_SERVER['HTTP_HOST']).'\' LIMIT 1;');
 			
-			$result = mysql_query($query);
-			if(mysql_num_rows($result) != 0)
+		  //$result = mysql_query($query);
+			if($result->total_rows != 0)
 			{
 				// Bingo, we found a match
-				$subdomain = mysql_result($result,0,'site_domain');
+			  $subdomain = $query->result(TRUE, 'site_domain');
 				// Set the subdomain globally
 				Kohana::config_set('settings.subdomain', $subdomain);
 			}
@@ -83,11 +84,11 @@ if(Kohana::config('config.enable_mhi') == TRUE)
 	{
 	
 		// Query for the database settings for this subdomain
-		$query = 'SELECT '.$tp.'mhi_site_database.user as user, '.$tp.'mhi_site_database.pass as pass, '.$tp.'mhi_site_database.host as host, '.$tp.'mhi_site_database.port as port, '.$tp.'mhi_site_database.database as db  FROM '.$tp.'mhi_site LEFT JOIN '.$tp.'mhi_site_database ON '.$tp.'mhi_site.id = '.$tp.'mhi_site_database.mhi_id WHERE '.$tp.'mhi_site.site_domain = \''.mysql_real_escape_string($subdomain).'\' AND '.$tp.'mhi_site.site_active = 1';
-		$result = mysql_query($query);
+	  $query = $db->query('SELECT '.$tp.'mhi_site_database.user as user, '.$tp.'mhi_site_database.pass as pass, '.$tp.'mhi_site_database.host as host, '.$tp.'mhi_site_database.port as port, '.$tp.'mhi_site_database.database as db  FROM '.$tp.'mhi_site LEFT JOIN '.$tp.'mhi_site_database ON '.$tp.'mhi_site.id = '.$tp.'mhi_site_database.mhi_id WHERE '.$tp.'mhi_site.site_domain = \''.$db->escape_str($subdomain).'\' AND '.$tp.'mhi_site.site_active = 1');
+	  //$result = mysql_query($query);
 		
 		// If this subdomain exists as an MHI instance...
-		if(mysql_num_rows($result) != 0)
+	  if($query->total_rows != 0)
 		{
 	
 			// Overwrite database settings so the subdomain will work properly
@@ -99,12 +100,16 @@ if(Kohana::config('config.enable_mhi') == TRUE)
 					'connection'    => array
 					(
 						'type'     => 'mysql',
-						'user'     => mysql_result($result,0,'user'),
-						'pass'     => mysql_result($result,0,'pass'),
-						'host'     => mysql_result($result,0,'host'),
+						//'user'     => mysql_result($result,0,'user'),
+						'user'     => $query->result(TRUE, 'user'),
+						//'pass'     => mysql_result($result,0,'pass'),
+						'pass'     => $query->result(TRUE, 'pass'),
+						//'host'     => mysql_result($result,0,'host'),
+						'host'     => $query->result(TRUE, 'host'),
 						'port'     => FALSE,
 						'socket'   => FALSE,
-						'database' => mysql_result($result,0,'db')
+						//'database' => mysql_result($result,0,'db')
+						'database' => $query->result(TRUE, 'db')
 					),
 					'character_set' => 'utf8',
 					'table_prefix'  => '',
@@ -132,6 +137,6 @@ if(Kohana::config('config.enable_mhi') == TRUE)
 		}
 	}
 	
-	mysql_close($link);
+	//mysql_close($link);
 	
 }
