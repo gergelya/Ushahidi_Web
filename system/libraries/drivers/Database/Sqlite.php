@@ -20,7 +20,6 @@ class Database_SQLite_Driver extends Database_Driver {
 	 * Database configuration
 	 */
 	protected $db_config;
-
 	/**
 	 * Sets the config for the class.
 	 *
@@ -76,6 +75,8 @@ class Database_SQLite_Driver extends Database_Driver {
 
 	public function query($sql)
 	{
+	  error_log("sql = blah",3,"/home/jharvard/public_html/andrew_error");
+	  //$sql = str_replace("\'", "\"", $sql);
 		// Only cache if it's turned on, and only cache if it's not a write statement
 		if ($this->db_config['cache'] AND ! preg_match('#\b(?:INSERT|UPDATE|REPLACE|SET)\b#i', $sql))
 		{
@@ -90,13 +91,12 @@ class Database_SQLite_Driver extends Database_Driver {
 			// Return the cached query
 			return self::$query_cache[$hash];
 		}
-
 		return new SQLite_Result(sqlite_query($this->link, $sql), $this->link, $this->db_config['object'], $sql);
 	}
 
 	public function set_charset($charset)
 	{
-		$this->query('SET NAMES '.$this->escape_str($charset));
+	  //$this->query('SET NAMES '.$this->escape_str($charset));
 	}
 
 	public function escape_table($table)
@@ -257,7 +257,7 @@ class Database_SQLite_Driver extends Database_Driver {
 
 		is_resource($this->link) or $this->connect();
 
-		return sqlite_escape_string($str, $this->link);
+		return sqlite_escape_string($str);
 	}
 
 	public function list_tables(Database $db)
@@ -277,7 +277,7 @@ class Database_SQLite_Driver extends Database_Driver {
 
 	public function show_error()
 	{
-		return sqlite_last_error($this->link);
+	        return sqlite_last_error($this->link);
 	}
 
 	public function list_fields($table)
@@ -289,24 +289,28 @@ class Database_SQLite_Driver extends Database_Driver {
 			foreach ($this->field_data($table) as $row)
 			{
 				// Make an associative array
+			  error_log("292\n", 3, "/home/jharvard/public_html/andrew_error");
 				$tables[$table][$row->Field] = $this->sql_type($row->Type);
 
 				if ($row->Key === 'PRI' AND $row->Extra === 'auto_increment')
 				{
 					// For sequenced (AUTO_INCREMENT) tables
+				  error_log("297\n", 3, "/home/jharvard/public_html/andrew_error");
 					$tables[$table][$row->Field]['sequenced'] = TRUE;
 				}
 
 				if ($row->Null === 'YES')
 				{
 					// Set NULL status
+				  error_log("303\n", 3, "/home/jharvard/public_html/andrew_error");
 					$tables[$table][$row->Field]['null'] = TRUE;
 				}
 			}
 		}
 
+		error_log("table = $tables[$tables]", 3, "/home/jharvard/public_html/andrew_log)");
 		if (!isset($tables[$table]))
-			throw new Kohana_Database_Exception('database.table_not_found', $table);
+		  			throw new Kohana_Database_Exception('database.table_not_found', $table);
 
 		return $tables[$table];
 	}
@@ -314,18 +318,20 @@ class Database_SQLite_Driver extends Database_Driver {
 	public function field_data($table)
 	{
 		$columns = array();
+		$sql = 'PRAGMA table_info('.$this->escape_table($table).')';
+		$sql = str_replace("`", "'", $sql);
 
-		if ($query = sqlite_query($this->link, 'SHOW COLUMNS FROM '.$this->escape_table($table)))
-		{
-			if (sqlite_num_rows($query))
-			{
-				while ($row = sqlite_fetch_object($query))
-				{
-					$columns[] = $row;
-				}
-			}
-		}
-
+		if($query = sqlite_query($this->link, $sql))
+		  {
+		    if(sqlite_num_rows($query))
+		      {
+			while($row = sqlite_fetch_object($query))
+			  {
+			    $columns[] = $row;
+			  }
+		      }
+		  }
+		echo $columns > "/home/jharvard/out.txt";
 		return $columns;
 	}
 
@@ -338,7 +344,7 @@ class SQLite_Result extends Database_Result {
 
 	// Fetch function and return type
 	protected $fetch_type  = 'sqlite_fetch_object';
-	protected $return_type = MYSQL_ASSOC;
+	protected $return_type = SQLITE_ASSOC;
 
 	/**
 	 * Sets up the result variables.
@@ -392,7 +398,7 @@ class SQLite_Result extends Database_Result {
 		}
 	}
 
-	public function result($object = TRUE, $type = MYSQL_ASSOC)
+	public function result($object = TRUE, $type = SQLITE_ASSOC)
 	{
 		$this->fetch_type = ((bool) $object) ? 'sqlite_fetch_object' : 'sqlite_fetch_array';
 
@@ -412,12 +418,12 @@ class SQLite_Result extends Database_Result {
 		return $this;
 	}
 
-	public function as_array($object = NULL, $type = MYSQL_ASSOC)
+	public function as_array($object = NULL, $type = SQLITE_ASSOC)
 	{
 		return $this->result_array($object, $type);
 	}
 
-	public function result_array($object = NULL, $type = MYSQL_ASSOC)
+	public function result_array($object = NULL, $type = SQLITE_ASSOC)
 	{
 		$rows = array();
 
