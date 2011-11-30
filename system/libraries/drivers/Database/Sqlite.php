@@ -290,20 +290,20 @@ class Database_SQLite_Driver extends Database_Driver {
 			{
 				// Make an associative array
 			  error_log("292\n", 3, "/home/jharvard/public_html/andrew_error");
-				$tables[$table][$row->Field] = $this->sql_type($row->Type);
+				$tables[$table][$row->name] = $this->sql_type($row->type);
 
-				if ($row->Key === 'PRI' AND $row->Extra === 'auto_increment')
+				if ($row->pk === '1')
 				{
-					// For sequenced (AUTO_INCREMENT) tables
+				  // For sequenced (AUTO_INCREMENT) tables
 				  error_log("297\n", 3, "/home/jharvard/public_html/andrew_error");
-					$tables[$table][$row->Field]['sequenced'] = TRUE;
+					$tables[$table][$row->name]['sequenced'] = TRUE;
 				}
 
-				if ($row->Null === 'YES')
+				if ($row->notnull === '99')
 				{
 					// Set NULL status
 				  error_log("303\n", 3, "/home/jharvard/public_html/andrew_error");
-					$tables[$table][$row->Field]['null'] = TRUE;
+					$tables[$table][$row->name]['null'] = TRUE;
 				}
 			}
 		}
@@ -331,7 +331,6 @@ class Database_SQLite_Driver extends Database_Driver {
 			  }
 		      }
 		  }
-		echo $columns > "/home/jharvard/out.txt";
 		return $columns;
 	}
 
